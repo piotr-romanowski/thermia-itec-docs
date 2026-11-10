@@ -172,32 +172,32 @@ write are in [`PROTOCOL.md`](PROTOCOL.md) — this file is the address list.
 | `W15 reg2149` | Operation status |  | 1 |  | candidate |
 | `W15 reg2150` | Queued demands |  | 1 |  | candidate |
 | `W15 reg2163` | Cooling operating time | h | 1 |  | candidate |
-| `W15 reg1092` | CHLODZENIE / 1092 |  | 1 |  | unknown |
+| `W15 reg1092` | Cooling 1092 (unmapped) |  | 1 |  | unknown |
 | `W15 reg1094` | Cooling 1094 |  | 1 |  | unknown |
-| `W15 reg1098` | CHLODZENIE / 1098 |  | 1 |  | unknown |
-| `W15 reg1099` | CHLODZENIE / 1099 |  | 1 |  | unknown |
-| `W15 reg1210` | ?? MAPUJ @1210blok (reg1210) |  | 1 |  | unknown |
-| `W15 reg1211` | ?? MAPUJ @1210blok (reg1211) |  | 1 |  | unknown |
-| `W15 reg1212` | ?? MAPUJ @1210blok (reg1212) |  | 1 |  | unknown |
-| `W15 reg1213` | ?? MAPUJ @1210blok (reg1213) |  | 1 |  | unknown |
-| `W15 reg1214` | ?? MAPUJ @1210blok (reg1214) |  | 1 |  | unknown |
-| `W15 reg1215` | ?? MAPUJ @1210blok (reg1215) |  | 1 |  | unknown |
-| `W15 reg1216` | ?? MAPUJ @1210blok (reg1216) |  | 1 |  | unknown |
-| `W15 reg1217` | ?? MAPUJ @1210blok (reg1217) |  | 1 |  | unknown |
-| `W15 reg1218` | ?? MAPUJ @1210blok (reg1218) |  | 1 |  | unknown |
-| `W15 reg1219` | ?? MAPUJ @1210blok (reg1219) |  | 1 |  | unknown |
-| `W15 reg1220` | ?? MAPUJ @1210blok (reg1220) |  | 1 |  | unknown |
-| `W15 reg1221` | ?? MAPUJ @1210blok (reg1221) |  | 1 |  | unknown |
-| `W15 reg1222` | ?? MAPUJ @1210blok (reg1222) |  | 1 |  | unknown |
-| `W15 reg1223` | ?? MAPUJ @1210blok (reg1223) |  | 1 |  | unknown |
-| `W15 reg1224` | ?? MAPUJ @1210blok (reg1224) |  | 1 |  | unknown |
-| `W15 reg1225` | ?? MAPUJ @1210blok (reg1225) |  | 1 |  | unknown |
-| `W15 reg1226` | ?? MAPUJ @1210blok (reg1226) |  | 1 |  | unknown |
-| `W15 reg1227` | ?? MAPUJ @1210blok (reg1227) |  | 1 |  | unknown |
-| `W15 reg1228` | ?? MAPUJ @1210blok (reg1228) |  | 1 |  | unknown |
-| `W15 reg1229` | ?? MAPUJ @1210blok (reg1229) |  | 1 |  | unknown |
-| `W15 reg1230` | ?? MAPUJ @1210blok (reg1230) |  | 1 |  | unknown |
-| `W15 reg1231` | ?? MAPUJ @1210blok (reg1231) |  | 1 |  | unknown |
+| `W15 reg1098` | Cooling 1098 (unmapped) |  | 1 |  | unknown |
+| `W15 reg1099` | Cooling 1099 (unmapped) |  | 1 |  | unknown |
+| `W15 reg1210` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1211` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1212` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1213` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1214` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1215` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1216` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1217` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1218` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1219` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1220` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1221` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1222` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1223` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1224` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1225` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1226` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1227` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1228` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1229` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1230` | Post-boot transient block |  | 1 |  | unknown |
+| `W15 reg1231` | Post-boot transient block |  | 1 |  | unknown |
 | `W15 reg1338` | Current limiter enabled |  | 1 |  | unknown |
 | `W15 reg1351` | Installation 1351 |  | 1 |  | unknown |
 
@@ -238,7 +238,7 @@ write are in [`PROTOCOL.md`](PROTOCOL.md) — this file is the address list.
 | Key | Name | Unit | Scale | Signed | Status |
 |---|---|---|---|---|---|
 | `W30 reg0` | Compressor enable/demand |  | 1 |  | confirmed |
-| `W30 reg1` | TEMP. ZADANA | °C | 0.1 |  | confirmed |
+| `W30 reg1` | Set temperature | °C | 0.1 |  | confirmed |
 | `W30 reg4` | Mode request |  | 1 |  | confirmed |
 | `W30 reg7` | Flow / circulation active (F) |  | 1 |  | confirmed |
 | `W30 reg5` | Stop pulse (candidate) |  | 1 |  | candidate |

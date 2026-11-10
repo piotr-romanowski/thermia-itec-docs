@@ -32,11 +32,19 @@ NAME_OVERRIDES = {
     "W2 reg43022": "Operation mode / request (candidate)",
     "W2 reg43024": "Unknown (counter/phase?)",
     "W10 reg46021": "Room setpoint (push to sensor)",
+    "W15 reg1092": "Cooling 1092 (unmapped)",
+    "W15 reg1098": "Cooling 1098 (unmapped)",
+    "W15 reg1099": "Cooling 1099 (unmapped)",
+    "W30 reg1": "Set temperature",
 }
-# Safety net: any Polish word token left in a name -> replaced by an English placeholder, and counted.
+# The 1210..1231 block is one post-boot transient phenomenon spread over 22 addresses (see PROTOCOL.md).
+NAME_OVERRIDES.update({f"W15 reg{n}": "Post-boot transient block" for n in range(1210, 1232)})
+# Safety net: any Polish token left in a name -> replaced by an English placeholder, and counted.
+# Covers both diacritic and ASCII-only Polish (names in the working map are not guaranteed English).
 PL_TOKENS = re.compile(
-    r"[ąćęłńóśźż]|\b(nieznan\w*|staly|stala|licznik\w*|faza|kandydat\w*|tryb pracy|zadanie|nastawa|"
-    r"pokojow\w*|czujnik\w*|grzalk\w*|przeplyw\w*|zawor\w*|odczyt|zapis|godzin\w*|ustaw\w*)\b",
+    r"[ąćęłńóśźż]|\b(nieznan\w*|stal[ya]|licznik\w*|faza|kandydat\w*|tryb\w*|pracy|zadan\w*|nastaw\w*|"
+    r"pokojow\w*|czujnik\w*|grzal\w*|grzan\w*|chlodzen\w*|przeplyw\w*|zawor\w*|mapuj\w*|blok\w*|"
+    r"odczyt|zapis|godzin\w*|ustaw\w*)\b",
     re.I,
 )
 STATUS_ORDER = {"confirmed": 0, "candidate": 1, "needs-reverify": 2, "unknown": 3}

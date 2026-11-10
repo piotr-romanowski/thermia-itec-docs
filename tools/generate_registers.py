@@ -39,14 +39,10 @@ NAME_OVERRIDES = {
 }
 # The 1210..1231 block is one post-boot transient phenomenon spread over 22 addresses (see PROTOCOL.md).
 NAME_OVERRIDES.update({f"W15 reg{n}": "Post-boot transient block" for n in range(1210, 1232)})
-# Safety net: any Polish token left in a name -> replaced by an English placeholder, and counted.
-# Covers both diacritic and ASCII-only Polish (names in the working map are not guaranteed English).
-PL_TOKENS = re.compile(
-    r"[ąćęłńóśźż]|\b(nieznan\w*|stal[ya]|licznik\w*|faza|kandydat\w*|tryb\w*|pracy|zadan\w*|nastaw\w*|"
-    r"pokojow\w*|czujnik\w*|grzal\w*|grzan\w*|chlodzen\w*|przeplyw\w*|zawor\w*|mapuj\w*|blok\w*|"
-    r"odczyt|zapis|godzin\w*|ustaw\w*)\b",
-    re.I,
-)
+# Safety net (language-neutral): any non-ASCII character in a name -> English placeholder, and counted.
+# Source-language names that happen to be ASCII (e.g. abbreviations) are NOT auto-detected here by design;
+# translate each one explicitly via NAME_OVERRIDES above. The pre-publication audit is the backstop.
+NON_ENGLISH = re.compile(r"[^\x00-\x7f]")
 STATUS_ORDER = {"confirmed": 0, "candidate": 1, "needs-reverify": 2, "unknown": 3}
 
 
@@ -92,7 +88,7 @@ def main():
 
     def english_name(key, e):
         nm = NAME_OVERRIDES.get(key) or (e.get("name") or "")
-        if PL_TOKENS.search(nm):
+        if NON_ENGLISH.search(nm):
             placeholders[0] += 1
             st = str(e.get("status", "unknown"))
             return f"(unnamed {st} register)"

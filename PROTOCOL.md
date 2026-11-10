@@ -277,3 +277,71 @@ the desired-page mechanism.
 - Mark every claim `confirmed` / `candidate` / `unknown`; do not promote a hypothesis by omission.
 - This documentation is model-specific to **CM930 2.3–2.4 / Eco 8**. Other iTec models (XTR, ATEC) share the
   Connect profile but differ in topology, index collisions, and which writes a given controller accepts.
+
+---
+
+## 14. Frame layouts and page map (reference)
+
+Everything a full `0x0F` client needs beyond §1–§13. All multi-byte fields are big-endian on the wire;
+append a Modbus CRC16 (poly `0xA001`) to every frame.
+
+### 14.1 Frame layouts
+
+**FC03 — read holding (mailbox / block reads)**
+```
+request :  addr 03 <start(2)> <qty(2)> CRC
+response:  addr 03 <bytecount(1)=2*qty> <qty words> CRC
+```
+Mailbox read: `0F 03 0708 0006 CRC` → `0F 03 0C <W0..W5> CRC`.
+
+**FC04 — read input (outdoor `0x1E` sensor block):** same shape as FC03 with fc `04`.
+
+**FC16 — write multiple (the controller publishes a page; you push a desired page)**
+```
+0F 10 <start(2)> <count(2)> <bytecount(1)=2*count> <count words> CRC
+```
+Echo-ACK a published page by reflecting its first 6 bytes (`addr fc start count`) + CRC — no data.
+
+**FC23 (`0x17`) — read/write multiple.** Used for the `0x0F` challenge and the `0x0A` poll.
+```
+request :  addr 17 <r_start(2)> <r_qty(2)> <w_start(2)> <w_qty(2)> <w_bytecount(1)> <w_data...> CRC
+response:  addr 17 <r_bytecount(1)=2*r_qty> <r_qty words> CRC
+```
+The 16-byte write payload (challenge) begins at **byte offset 11** of the request
+(`1 addr + 1 fc + 2 + 2 + 2 + 2 + 1 = 11`).
+
+- **`0x0F` challenge:** `0F 17 | r=0730 qty=0008 | w=071C qty=0008 | bc=10 | <16 challenge bytes> | CRC`.
+  Gateway answer: `0F 17 10 <16 response bytes> CRC` (the response algorithm is **not** in this doc — §13).
+- **`0x0A` poll:** the display's write payload holds `[?, outdoor, setpoint_hi, setpoint_lo, …]` — **outdoor** is
+  the signed low byte of write-word 1, **setpoint** is write-word 2 (`int16`). The sensor answers 3 words:
+  `0A 17 06 <reg0(2)> <reg1(2)> <reg2(2)> CRC` (reg0 room temp ×10, reg1 setpoint request, reg2 status; §5).
+
+### 14.2 Page map
+
+Pages are addressed by **index = position in the bootstrap list below**. Mailbox request bits (§7): for page
+index `i` (0..30), the **read** bit is `W3` bit `i` if `i<16` else `W2` bit `i-16`; the **push** bit is `W1`/`W0`
+the same way. Each published FC16 frame carries its own `start` and `count`, so you decode a publication
+directly (`parameter = start + offset`, value via `REGISTERS.md`) without this list — you only need the list to
+*request* a specific page.
+
+**Bootstrap pages (32; indices 0–31, only 0–30 are individually request-able):**
+```
+ 0 03E8   1 03FC   2 0410   3 042E   4 0442   5 0456   6 046A   7 047E
+ 8 0492   9 04A6  10 04BA  11 04D8  12 04F6  13 050A  14 051E  15 0532
+16 0546  17 055A  18 057B  19 059C  20 05BD  21 05DE  22 05FF  23 0620
+24 0641  25 0662  26 0683  27 06A4  28 06C5  29 06EA  30 06F1  31 06F4
+```
+`055A..06E5` (indices 17–28) is the calendar block (§12). `06EA` (index 29) is the clock page (§14.3).
+
+**Runtime pages (10):** `07D0 07E4 07F8 080C 0820 0834 0848 0864 0870 0884`. Requested/cleared via `W4` bits —
+`07D0`→b0, `07E4`→b1, `07F8`→b2, `080C`→b3, `0820`→b4, `0848`→b6, `0864`→b8 (holds `2149` operation-status),
+`0870`→b9. (`0834` is ACK-required but not a request bit.)
+
+**Alarm page:** `085F` — request via `W4` b7 (`0x0080`) only (§7.4).
+
+**READ_ALL** (`W2=0x0001 + W3=0x0019`) = indices 0 (`03E8`), 3 (`042E`), 4 (`0442`) + `W2` b0 = index 16 (`0546`).
+
+### 14.3 Clock page `06EA`
+
+7 words, local time: `[sec, min, hour, day, month, year−2000, weekday]`, weekday `0 = Monday`. Written with the
+desired-page mechanism; the whitelist entry carries no range (the image comes from the client's clock).

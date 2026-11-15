@@ -264,9 +264,24 @@ the desired-page mechanism.
 - **Functions:** `F1` DHW blocked · `F2` EVU (stops the pump) · `F3` silent mode · `F4` temperature reduction.
 - **Modes:** `0` = date range (weekday mask 0, evaluated against the clock) · `1` = **weekly** (weekday mask:
   bit0 Monday … bit6 Sunday; date words ignored by the panel).
-- **Add:** write the record content into the first free slot. **The controller derives the slot bitmap from the
-  record content**, so you do not set the bitmap yourself; deleting = writing the **empty record**
+- **Add / delete:** write the record content into a slot; delete = write the **empty record**
   (`{0,0,0,31,12,0, 0,0,31,12,0,0}`). One record spans 1–2 page writes; a failed step drops the rest.
+
+**Operational behaviour (Eco 8) — not just addresses.** The controller recomputes each function's slot bitmap
+from record content on every calendar write (`bit_i = slot i content ≠ empty record`); you never write the bitmap
+yourself. Three consequences that matter in practice:
+
+- **Delete cascades.** Deleting a *real* entry makes the controller recompute, which clears that slot **and every
+  other empty-content slot of the same function at the same time**. Leftover empty slots vanish when you delete a
+  neighbouring real entry.
+- **A no-op write does nothing.** Writing the empty record to a slot that already holds exactly the empty record
+  changes no bytes, so nothing is transmitted and nothing recomputes. A slot stranded as the exact empty record
+  (a "year-2000 phantom" — e.g. from an earlier interrupted delete) **cannot be removed on its own**; it clears via
+  the cascade above, or by being overwritten with a new entry.
+- **Reuse on add.** Pick the lowest slot whose *content* is empty (not the lowest clear bitmap bit). This reuses a
+  phantom/free slot instead of leaving an empty slot below a fresh entry, and keeps entries packed from slot 0.
+
+(On XTR the slot bitmap is an independent validity flag, so none of the above applies there.)
 
 ---
 

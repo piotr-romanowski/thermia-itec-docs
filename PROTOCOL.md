@@ -283,6 +283,12 @@ yourself. Three consequences that matter in practice:
 
 (On XTR the slot bitmap is an independent validity flag, so none of the above applies there.)
 
+**No entry over midnight (verified LIVE on Eco 8, 2026-11-17).** A weekly entry with start > stop (e.g.
+`22:00→08:00`) is accepted and shown by the panel, but the controller **never runs it**. Two nights showed no
+setback, while a same-day weekly test entry (`10:00–11:00`) and a date-range entry took effect to the minute. This
+matches the iTec Eco User Guide (AWIE01UG102, p.19): *STOP no later than 23:59, START no earlier than 00:01;
+overnight = two entries.* So write a night setback as **`start–23:59` + `00:01–stop`** with the same weekday mask.
+
 ---
 
 ## 13. Integrity notes

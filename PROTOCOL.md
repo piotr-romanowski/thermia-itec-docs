@@ -96,6 +96,10 @@ asks for **3 registers** the sensor answers. Response frame: `0A 17 06 <reg0> <r
 
 Also observed: the display pushes `W10 46022` = status to the sensor (`0` ok / `1` alarm / `2` top-up).
 
+**Delivery check:** the controller republishes the room temperature it actually received in the `0x0F` runtime
+word **`2060`** (`×10 °C`, page published about every 21 s). It followed the emulated `reg0` change for change
+(6/6 over one night, 5–15 s later) — use it to confirm the emulation arrives, not just that it was sent. confirmed.
+
 **Foreign-responder guard:** if a `0x0A` response appears that you did not send, another device owns the slot —
 latch and stop transmitting until cleared by hand. (Most transceivers don't echo your own TX; if yours does,
 tell the responder so it treats the next identical frame as its own echo, not a foreign responder.)

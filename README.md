@@ -32,11 +32,21 @@ The `0x0F` approval challenge/response algorithm and key are **not** part of thi
 join an already-live session without them, but initiating a session after a pump restart requires an external
 `approval(challenge[16]) -> response[16]` function that you supply.
 
-## Regenerating the register table
+## Register table
 
-```
-python tools/generate_registers.py path/to/rejestry.yaml -o REGISTERS.md
-```
+`REGISTERS.md` is generated from the maintainer's working register map (not published as such), so treat
+`REGISTERS.md` as the reference and do not edit it by hand — corrections are welcome as issues. For the record,
+the generator is `tools/generate_registers.py <map.yaml> -o REGISTERS.md` (requires PyYAML).
 
-Requires PyYAML. The register map is the single source of truth; `REGISTERS.md` is generated — do not edit by
-hand.
+## Acknowledgements
+
+- **ryckema** — iTec XTR M register map with certainty levels, live tests on the XTR and many cross-checks:
+  https://github.com/ryckema/Thermia_itec
+- **fclauson** — capture of a genuine DCM03 online module on an ATEC, which first showed the `0x0F` mailbox and
+  page layout: https://github.com/fclauson/Thermia-ATEC-ESP-emulator-of-DCOM
+- **An iTec Eco 5 owner** (who prefers not to be named) — a capture of a genuine Thermia Online gateway on an
+  iTec, which located the gateway session on `0x0F` and its challenge window.
+
+## License
+
+MIT (see `LICENSE`). Not affiliated with Thermia, Danfoss or Samsung. Every write is your responsibility.

@@ -252,6 +252,24 @@ remember mode → write Off → wait for the top-up status bit (`2149` b2) to cl
   only the integer is published). Do not derive daily heater use from them; use the heater bits
   (`W2 43020` b7, `43021` b4). confirmed (10 days, 2 steps).
 
+### 10.1 Heating regulation as seen on the bus (Eco 8, passive overnight capture, 13 compressor starts/stops)
+
+- **Heat demand `2120`** (panel shows `−2120`) is a degree-minute integral of *wanted − actual supply*. The compressor
+  **starts when `2120` reaches +50** (panel −50 = HEATING START `1073` × −5) and **stops at −50** (panel +50 = HEATING
+  STOP `1074` × −5) — 7/7 starts, 6/6 stops. After a stop the value jumps to about −5, then 0, and rises again
+  (≈ 1 unit per 20 s while supply is ~2 K below wanted). confirmed.
+- **Start/stop sequence:** `2150` bit0 (heating demand queued) is set ~40 s before the compressor starts and clears at
+  the start; the circulation pump (`2094` bit3) starts ~40 s before the compressor and runs ~1 min after the stop;
+  the outdoor fan (`2094` bit2) starts with the compressor and stops ~1 min after it (14/14 cycles). confirmed.
+- **`2095`** mirrors `R30 reg21` with ~15 s delay. **`2117`** bit9 follows the outdoor-unit run request (`R30 reg21`
+  bit9, a few s later); bit8 is set in heating context, clear during DHW (`512` DHW, `768` heating, `0` idle). candidate.
+- **Cycling at the curve minimum:** when the wanted supply sits at the curve MIN and the compressor's lowest output
+  (15–16 Hz) overshoots it by 1–2 K, the integral drains to −50 and the unit cycles — one night showed a very regular
+  ~45 min on / ~20 min off (6 cycles, ±1 min). This follows from the minimum output, not a fault.
+- **HOT WATER TIME / HEATING TIME** (`1054` / `1076`, 30 min) are alternation limits that apply only when DHW and heating
+  are demanded at the same time (Danfoss DHP-iQ Operating Guide wording, same menu on the iTec Eco); without a heating
+  demand a DHW cycle simply runs to its stop temperature. candidate (not yet observed hitting the limit).
+
 ---
 
 ## 11. Modes and key enums

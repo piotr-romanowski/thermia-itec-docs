@@ -28,6 +28,7 @@ and the pump calendar work.
 | Addr | Role | FC used | Notes |
 |---|---|---|---|
 | `0x02` | Indoor board | `0x17` (read/write), `0x03` | operating data |
+| `0x06` | Legacy online-module slot (Danfoss Link / DCM03 era) | `0x17` | **empty slot**, polled by the display; transport layer known, application layer not (§13.1) |
 | `0x0A` | Room-sensor slot (Danfoss 086U9563) | `0x17` | **empty slot** on a stock pump — emulate to inject a room signal / setpoint |
 | `0x0F` | Online-module (Thermia Connect gateway) slot | `0x17` challenge, `0x10` pages, `0x03` mailbox | **empty slot** — the gateway session lives here (§7) |
 | `0x1E` | Outdoor unit (Samsung EHS, NASA under the hood) | `0x04` read, `0x10` write | sensor block; some writes answer `0x90` exception |
@@ -345,6 +346,26 @@ setback (it shows the reduction temperature) is not on the bus — only the two 
 - Mark every claim `confirmed` / `candidate` / `unknown`; do not promote a hypothesis by omission.
 - This documentation is model-specific to **CM930 2.3–2.4 / Eco 8**. Other iTec models (XTR, ATEC) share the
   Connect profile but differ in topology, index collisions, and which writes a given controller accepts.
+
+### 13.1 Legacy slot `0x06` and controller timing (parked research)
+
+- **Transport (confirmed, also on an XTR M):** any syntactically valid 12-register reply on `0x06` makes the display
+  poll it at an alternating 0.7 / 1.4 s instead of ~4.3 s; the fast cadence lasts ~2 min after the replies stop.
+  Reply word `@45002` (`0xAFCA`) = `0x03E8` makes the display write 16 to `0x0F @2145` (ACK); 0 clears it. `0x03E8`
+  is a constant (1001, 1002, 999, 1234 give no ACK). The ACK is transport only — no payload tried (zeros, status
+  words, product id, ASCII, echo, RTC, setpoints) makes the module appear as an application-level module.
+- **Version row (confirmed):** with valid replies the VERSION page shows an `EXP` row = reply word `@45009`
+  (`0xAFD1`) / 10; it disappears ~2 min 15 s after the replies stop. Metadata only.
+- **Heartbeat `@45020` (confirmed):** a copy of `0x02 @43022` bit 5 (heating allowed: displayed outdoor
+  temperature below the heat-stop setting, hysteresis 2–3 K), pulsed 0 ↔ 32 (15–20 s high, period ~64 s).
+  Any non-zero `@45002` changes the pulse value to 16.
+- **Controller "minute" ≈ 63.9 s (candidate):** mean heartbeat period 63.87 s over 7300 periods. In those units a
+  periodic routine (a 62–68 s state in `@43020`, then a 10-minute window in `@43022`) repeats every 1440 minutes
+  = 25 h 33 min real time — a prediction from this was met within 117 s a day later; probably the daily
+  circulation-pump exercise. Hot water / heating alternation when both are demanded measures 1916–1922 s
+  (= 30 such minutes).
+- A full address scan (1–247, FC03/FC04) found no hidden slave. The gateway session of current pumps lives on
+  `0x0F` (§6), not here.
 
 ---
 

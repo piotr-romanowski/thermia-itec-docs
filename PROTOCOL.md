@@ -240,6 +240,13 @@ remember mode → write Off → wait for the top-up status bit (`2149` b2) to cl
   (e.g. `0x40` DHW context, `0x20` heating context, `0x200` outdoor-unit active; `@20` b1 reverse cycle,
   `@21` b2 defrost). `W2 43020` b0 = DHW request, b6 = heating context.
 - **SG-Ready:** `R2 43005` = ±1000 (SG2 off/on), `R2 43011` = SG1 (value conflict open).
+- **Calendar function in effect `1467` / `1565` / `1663` / `1761`** (`05BB` / `061D` / `067F` / `06E1`) — one word
+  per calendar function, set by the controller: `1` while F1 DHW block / F2 EVU / F3 silent mode / F4 temperature
+  reduction is in effect, `0` otherwise (§12). confirmed.
+- **Operating counters `2160..2168` (page `0870`)** count **whole hours** (e.g. aux heater 1 `2167` stepped
+  206→207 after ~0.7 h of relay time spread over ~65 short switch-ons, so sub-hour runs accumulate internally and
+  only the integer is published). Do not derive daily heater use from them; use the heater bits
+  (`W2 43020` b7, `43021` b4). confirmed (10 days, 2 steps).
 
 ---
 
@@ -259,7 +266,8 @@ Read-only from the controller (published during bootstrap / full sync and after 
 the desired-page mechanism.
 
 - **Layout:** `055A..06E5` = 396 words = **4 functions × 98 words**. Each function = **8 records × 12 words** +
-  a **slot bitmap** (bit `n` = slot `n` active) + 1 unknown word; 4-word tail.
+  a **slot bitmap** (bit `n` = slot `n` active) + a **status word** (function in effect, below); 4-word tail
+  `06E2..06E5` (meaning unknown; `06E2` changes on its own, e.g. bit 1/bit 2 during the day).
 - **Record (12 words):** `mode, start[min,hour,day,month,year−2000], stop[min,hour,day,month,year−2000], weekday_mask`.
 - **Functions:** `F1` DHW blocked · `F2` EVU (stops the pump) · `F3` silent mode · `F4` temperature reduction.
 - **Modes:** `0` = date range (weekday mask 0, evaluated against the clock) · `1` = **weekly** (weekday mask:
@@ -271,15 +279,19 @@ the desired-page mechanism.
 from record content on every calendar write (`bit_i = slot i content ≠ empty record`); you never write the bitmap
 yourself. Three consequences that matter in practice:
 
-- **Delete cascades.** Deleting a *real* entry makes the controller recompute, which clears that slot **and every
-  other empty-content slot of the same function at the same time**. Leftover empty slots vanish when you delete a
-  neighbouring real entry.
+- **Slots are released only from the top.** The bitmap covers slots `0..highest non-empty`: deleting the
+  *highest* real entry also releases every empty slot below it (a "cascade"), but deleting an entry **below** an
+  occupied slot leaves that slot in use with empty content (a hole) until something is written into it. To change
+  an entry, **overwrite its slot in place** (write the new record to the same slot) instead of delete + add.
+  (Corrected 2026-11-17, LIVE: an earlier reading "every empty slot is dropped" was wrong.)
 - **A no-op write does nothing.** Writing the empty record to a slot that already holds exactly the empty record
   changes no bytes, so nothing is transmitted and nothing recomputes. A slot stranded as the exact empty record
   (a "year-2000 phantom" — e.g. from an earlier interrupted delete) **cannot be removed on its own**; it clears via
   the cascade above, or by being overwritten with a new entry.
-- **Reuse on add.** Pick the lowest slot whose *content* is empty (not the lowest clear bitmap bit). This reuses a
-  phantom/free slot instead of leaving an empty slot below a fresh entry, and keeps entries packed from slot 0.
+- **Reuse on add.** Pick the lowest slot whose *content* is empty (not the lowest clear bitmap bit). This fills a
+  hole/phantom instead of leaving an empty slot below a fresh entry, and keeps entries packed from slot 0.
+- **Edit in place** (verified LIVE 2026-11-17): writing a record to an in-use slot (including an empty-content hole)
+  replaces it; nothing else moves.
 
 (On XTR the slot bitmap is an independent validity flag, so none of the above applies there.)
 
@@ -288,6 +300,19 @@ yourself. Three consequences that matter in practice:
 setback, while a same-day weekly test entry (`10:00–11:00`) and a date-range entry took effect to the minute. This
 matches the iTec Eco User Guide (AWIE01UG102, p.19): *STOP no later than 23:59, START no earlier than 00:01;
 overnight = two entries.* So write a night setback as **`start–23:59` + `00:01–stop`** with the same weekday mask.
+First night with such a pair (2026-11-17→18): both entries ran; in the two-minute gap the controller really
+returned to the day setpoint (circuit-1 wanted temperature rose by 6 °C for two minutes), harmless.
+
+**Function in effect — status word (verified LIVE on Eco 8, 2026-11-18).** The word after each function's bitmap
+(offset 97 of the block: `05BB` F1, `061D` F2, `067F` F3, `06E1` F4) is written by the controller itself:
+`1` while that function is in effect, `0` otherwise. The controller publishes the page holding it (`059C`, `05FF`,
+`0662`, `06C5`) **only at a transition** (twice, ~30 s apart), so a passive listener sees every start and stop.
+Evidence: F4 over one night (all three transitions of a two-entry setback; page `06C5` never published in
+between over 9 h);
+F1/F2/F3 with three 5-minute date entries (each 0 → 1 at start, 1 → 0 at stop; EVU stopped the compressor).
+Use this instead of evaluating the entries against the clock. Note: the panel's *effective* room setpoint during a
+setback (it shows the reduction temperature) is not on the bus — only the two settings `1007` / `1012`; combine
+`1761` with them. Transitions land ~20 s after the minute when the controller clock lags.
 
 ---
 

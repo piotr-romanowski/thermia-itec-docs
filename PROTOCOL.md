@@ -23,6 +23,27 @@ and the pump calendar work.
   **32 frames ≈ 4 s** (each slot polled once per cycle, i.e. about every 4 s).
 - Frames can exceed 64 bytes (full pages). A stream reframer must wait for the announced length, not cut at 64 B.
 
+### Connector (RJ45 on the indoor I/O card)
+
+Two RJ45 bus ports: **122 = "Display"** (cable to the display, the bus master) and **123 = "Ext."** (external
+bus; the Thermia Connect gateway goes here). Connect your own interface to **123**, never in place of the display cable.
+
+Wiring as used on an Eco 8 (listening and transmitting), given by **wire colour** of a standard patch cord:
+
+| Wire colours | Pins (T568B cord) | Signal |
+|---|---|---|
+| orange + white/orange | 1 + 2 | +12 V supply — leave unconnected unless you power a gateway from it |
+| white/green + blue | 3 + 4 | GND |
+| white/blue + green | 5 + 6 | B |
+| white/brown + brown | 7 + 8 | A |
+
+- Community write-ups (from a breakout cable without numbers) give the same pinout counted from the other end of
+  the plug: 1+2 = A, 3+4 = B, 5+6 = GND, 7+8 = +12 V. **Go by colours, not pin numbers**: combining that numbering
+  with standard pin-1 orientation puts A on +12 V, which overheats the 120 Ω terminator of a MAX485 module.
+- Connect GND as well as A/B. Before connecting a module, measure with the pump on and nothing attached:
+  orange ≈ 12 V against blue, white/green ≈ 0 V, A and B only a few volts.
+- Other iTec models (e.g. XT10) are expected to match but are not verified here.
+
 ### Slaves
 
 | Addr | Role | FC used | Notes |

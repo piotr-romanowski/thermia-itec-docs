@@ -40,6 +40,8 @@ Wiring as used on an Eco 8 (listening and transmitting), given by **wire colour*
 - Community write-ups (from a breakout cable without numbers) give the same pinout counted from the other end of
   the plug: 1+2 = A, 3+4 = B, 5+6 = GND, 7+8 = +12 V. **Go by colours, not pin numbers**: combining that numbering
   with standard pin-1 orientation puts A on +12 V, which overheats the 120 Ω terminator of a MAX485 module.
+- The pins are shorted in pairs inside the pump (doubled lines; continuity check with the pump off), so the port
+  carries only **4 lines**: +12 V, GND, A, B. A continuity check is the quickest way to identify the pairs on any cable.
 - Connect GND as well as A/B. Before connecting a module, measure with the pump on and nothing attached:
   orange ≈ 12 V against blue, white/green ≈ 0 V, A and B only a few volts.
 - Other iTec models (e.g. XT10) are expected to match but are not verified here.

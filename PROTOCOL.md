@@ -44,7 +44,8 @@ Wiring as used on an Eco 8 (listening and transmitting), given by **wire colour*
   carries only **4 lines**: +12 V, GND, A, B. A continuity check is the quickest way to identify the pairs on any cable.
 - Connect GND as well as A/B. Before connecting a module, measure with the pump on and nothing attached:
   orange ≈ 12 V against blue, white/green ≈ 0 V, A and B only a few volts.
-- Other iTec models (e.g. XT10) are expected to match but are not verified here.
+- Other units: the same colour pinout has been reported by other users on an iTec XT10 and on an older iTec Total
+  (port 123, T568B cord). Not verified here; measure before connecting.
 
 ### Slaves
 
@@ -136,10 +137,11 @@ Layers, in order:
 
 1. **Challenge / approval.** The controller opens a session by sending a 16-byte challenge on `0x0F`
    (`FC23`, handshake windows `@071C` / `@0730`). A gateway answers with a 16-byte response within ~30–60 ms,
-   and the controller then starts its configuration export. The controller **verifies** the answer
-   (a recorded reply is refused). **The response algorithm and key are NOT part of this documentation or the
-   reference client** — they are supplied by an external function (`approval(challenge[16]) -> response[16]`).
-   Without it, a client can only **join an already-live session**, not initiate one after a pump restart.
+   and the controller then starts its configuration export. The controller **verifies** the answer: a recorded
+   reply only works if the controller happens to send the very same challenge again (§6.1).
+   The response is computed by `approval(challenge[16]) -> response[16]` (§6.1). **The key is not part of this
+   documentation.** Without the key, a client can only **join an already-live session**, not initiate one after
+   a pump restart.
 2. **Page publications.** After approval the controller publishes pages as **`FC16`** writes
    (`0F 10 <page> <count> <bytes> <words…> CRC`). The gateway **echo-ACKs** each in-scope page (sends the 6-byte
    header back). Bootstrap = 32 pages `03E8..06F4`; runtime = `07D0..0884`; alarms = `085F`.
@@ -149,6 +151,30 @@ Layers, in order:
 
 Foreign-gateway guard: a `0x0F` response that is not ours means a real gateway is present → go silent until
 restart. Never answer `0x0F` while the genuine module is connected.
+
+### 6.1 Approval algorithm
+
+The response is the challenge encrypted with **XXTEA** (Corrected Block TEA) under a fixed 128-bit key:
+
+- Input: the 16 challenge bytes exactly as they appear in the `FC23` write payload (byte offset 11 of the
+  request, §14.1).
+- Split the 16 bytes into **4 little-endian `uint32` words**; the key is likewise 4 little-endian `uint32` words.
+- Standard XXTEA **encryption**, `n = 4`: `rounds = 6 + 52/n = 19`, `delta = 0x9E3779B9`,
+  `MX = ((z>>5 ^ y<<2) + (y>>3 ^ z<<4)) ^ ((sum ^ y) + (k[(p & 3) ^ e] ^ z))`.
+- Output: the 4 words packed back little-endian = the 16 response bytes, sent as
+  `0F 17 10 <16 response bytes> CRC`.
+
+Checked here: an Eco 8 controller accepted every computed answer (live session starts), and the computed responses
+match a capture of a genuine gateway on an iTec Eco 5 byte for byte. confirmed.
+
+- Challenges differ from one session start to the next (all different across more than 20 recorded starts on an
+  Eco 8), so replaying a recorded pair is not a general solution: it only works when the controller repeats
+  exactly that challenge.
+- **The key is not published here.** It is the same on the iTec units and the ATEC seen so far and has been
+  published by others in the community; finding it is left to the reader. A client should load it from a local
+  file outside version control rather than compile it in.
+- Timing: answer within ~30–60 ms. Unanswered, the controller gives up after a few challenges (an Eco 8 sends
+  6 in ~28 s); it does not offer a new session until the next restart.
 
 ---
 
@@ -364,8 +390,7 @@ setback (it shows the reduction temperature) is not on the bus — only the two 
 
 ## 13. Integrity notes
 
-- **Excluded on purpose:** the `0x0F` approval **algorithm and key**, and the source/provenance of that
-  discovery. A reference client exposes only the hook interface; each user supplies their own `approval()`.
+- **Excluded on purpose:** the `0x0F` approval **key** (the algorithm is in §6.1). Supply it locally.
 - Mark every claim `confirmed` / `candidate` / `unknown`; do not promote a hypothesis by omission.
 - This documentation is model-specific to **CM930 2.3–2.4 / Eco 8**. Other iTec models (XTR, ATEC) share the
   Connect profile but differ in topology, index collisions, and which writes a given controller accepts.

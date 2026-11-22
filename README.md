@@ -28,9 +28,9 @@ Writes change a real pump — keep ranges narrow and verify on the panel.
 
 ## Not included
 
-The `0x0F` approval challenge/response algorithm and key are **not** part of this documentation. A client can
-join an already-live session without them, but initiating a session after a pump restart requires an external
-`approval(challenge[16]) -> response[16]` function that you supply.
+The `0x0F` approval **key** is **not** part of this documentation (the algorithm is described in PROTOCOL §6.1).
+A client can join an already-live session without it, but initiating a session after a pump restart requires the
+key, supplied locally by you.
 
 ## Register table
 

@@ -89,6 +89,12 @@ Every mapped register carries a `scale`, and some carry a `signed` marker. Decod
 
 - **Operating data / sensors:** block reads on `0x02` (FC `0x17`/`0x03`) and `0x1E` (FC `0x04`). The outdoor
   block is also readable with `FC03` on demand.
+- **Passive decoding — match the response to its request.** The master polls `0x1E` FC04 only as `@0 ×22` and
+  `@30 ×6` (`reg30..35`, all `0` on an Eco 8). A response carries no start address, so a sniffer pairs it with the
+  last request it saw. If a request is lost in the stream (seen 2× in a 9 h capture), the 22-register reply to `@0`
+  lands under `@30` and produces phantom `R30 reg30..51` that mirror `reg0..21` shifted by 30 (`reg40 = reg10`,
+  `reg51 = reg21`). Drop any FC04/FC23 response whose byte count ≠ 2 × the requested quantity. There is **no**
+  `R30 @36..51` block. confirmed.
 - **Online-session values (`0x0F`):** the controller does **not** push most setting pages unsolicited in a live
   session. You request them through the mailbox (§7) and read them from the pages it then publishes. Alarm words
   (`085F`) come only on change or on explicit request (§7.4).
@@ -292,7 +298,8 @@ remember mode → write Off → wait for the top-up status bit (`2149` b2) to cl
   is only trustworthy once `085F` has been read this session (§7.4); otherwise unknown.
 - **Outdoor unit (`0x1E`):** `R30 reg20` = operating-state enum, `R30 reg21` = status bitfield
   (e.g. `0x40` DHW context, `0x20` heating context, `0x200` outdoor-unit active; `@20` b1 reverse cycle,
-  `@21` b2 defrost). `W2 43020` b0 = DHW request, b6 = heating context.
+  `@21` b2 defrost). `W2 43020` b0 = DHW circuit active (set during DHW **and throughout every defrost**, i.e. the
+  DHW valve), b6 = heating context.
 - **SG-Ready:** `R2 43005` = ±1000 (SG2 off/on), `R2 43011` = SG1 (value conflict open).
 - **Calendar function in effect `1467` / `1565` / `1663` / `1761`** (`05BB` / `061D` / `067F` / `06E1`) — one word
   per calendar function, set by the controller: `1` while F1 DHW block / F2 EVU / F3 silent mode / F4 temperature
@@ -316,9 +323,32 @@ remember mode → write Off → wait for the top-up status bit (`2149` b2) to cl
 - **Cycling at the curve minimum:** when the wanted supply sits at the curve MIN and the compressor's lowest output
   (15–16 Hz) overshoots it by 1–2 K, the integral drains to −50 and the unit cycles — one night showed a very regular
   ~45 min on / ~20 min off (6 cycles, ±1 min). This follows from the minimum output, not a fault.
+- **Continuous operation:** on a night at 0…3 °C outdoor (ROOM FACTOR 2, wanted supply 29–38 °C) the compressor did not
+  stop for 9 h except inside defrosts; `2120` stayed within −20…+50, the stop threshold was never reached. candidate (one night).
 - **HOT WATER TIME / HEATING TIME** (`1054` / `1076`, 30 min) are alternation limits that apply only when DHW and heating
   are demanded at the same time (Danfoss DHP-iQ Operating Guide wording, same menu on the iTec Eco); without a heating
   demand a DHW cycle simply runs to its stop temperature. candidate (not yet observed hitting the limit).
+
+### 10.2 Defrost as seen on the bus (Eco 8, passive overnight capture at 0…3 °C, 12 defrosts in 9 h)
+
+Every defrost (12/12) showed the same signature; it lasted 276–315 s, one every 39–62 min (`2172`), and `2171` counted
+each one. ENERGY PR.H.W (`1151`) was ON, i.e. defrost energy taken from the DHW tank.
+
+| Signal | During defrost | Status |
+|---|---|---|
+| `R30 reg21` | b2 set (`545` → `549`) — the defrost flag | confirmed |
+| `R30 reg20` | state sequence `30/31` → `26` → `27` → `26` → `24` → `28` → `29` | candidate |
+| `R30 reg11` / `reg14` | compressor briefly 0 Hz twice, ~39 Hz in between; outdoor fan 0 | confirmed |
+| `W2 43020` | b0 set for the whole defrost (DHW valve); tank bottom sensor drops 1–5 K within ~10 min after | confirmed |
+| `2149` | `34` = b1 + b5 (defrost-hot-water) | candidate |
+| `2132`, `2148` | `1` for the whole defrost (+1…+20 s after `R30 reg21` b2) | candidate |
+| `2111` | `1` for the last 21–43 s | unknown |
+| `2020` | `1` for 85–128 s right after the end | unknown |
+| `2108` b7 / `2117` | `0` (also `2108` b7 = 0 during DHW; `128` in space heating) | candidate |
+| `R30 reg7/9/15/17/18/19` | stay `0` — not defrost flags | confirmed |
+
+- **Immersion heaters** ran only at the end of defrosts and only when the tank bottom sensor (`R2 43004`) was ≤ 35 °C
+  (4/4; none of 8 defrosts at ≥ 37 °C): heater 1 (`43020` b7) for ~13 s, then heater 2 (`43021` b4, `2014` b4) for 50–160 s. candidate.
 
 ---
 

@@ -6,9 +6,10 @@ publication-ready table per slave, split into read / write, with NO non-English 
 enums, bitfields, how to write) is documented in PROTOCOL.md, not here.
 
 Usage:
-    python tools/generate_registers.py [path/to/rejestry.yaml] [-o REGISTERS.md]
+    python tools/generate_registers.py [path/to/registers.yaml] [-o REGISTERS.md]
 
-Default source: ../thermia/bridge/rejestry.yaml (the working copy next to this folder).
+Default source: bridge/registers.yaml of the working repo this folder lives in (<working repo>/repos/<this repo>),
+resolved from this script's location, so it works from any directory.
 Requires PyYAML.
 """
 import argparse
@@ -68,7 +69,8 @@ def fmt_scale(v):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("src", nargs="?", default="../thermia/bridge/rejestry.yaml")
+    default_src = Path(__file__).resolve().parents[3] / "bridge" / "registers.yaml"
+    ap.add_argument("src", nargs="?", default=str(default_src))
     ap.add_argument("-o", "--out", default="REGISTERS.md")
     args = ap.parse_args()
 

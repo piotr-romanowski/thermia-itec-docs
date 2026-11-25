@@ -328,6 +328,21 @@ remember mode → write Off → wait for the top-up status bit (`2149` b2) to cl
 - **HOT WATER TIME / HEATING TIME** (`1054` / `1076`, 30 min) are alternation limits that apply only when DHW and heating
   are demanded at the same time (Danfoss DHP-iQ Operating Guide wording, same menu on the iTec Eco); without a heating
   demand a DHW cycle simply runs to its stop temperature. candidate (not yet observed hitting the limit).
+- **Which setpoint the compressor follows:** the supply line tracks **`2121`** (supply line wanted temperature, confirmed
+  on the panel) — mean difference −0.06 K over a week of heating samples. **`2123`** (distribution circuit 1 wanted) is
+  *not* the compressor target: with ROOM FACTOR 2 and no temperature-reduction calendar entry it sat at 39–40 °C while
+  `2121` and the actual supply were 30–31 °C; during a reduction entry `2123` dropped by ~5 K with little effect on `2121`.
+  Treat `2123` as a derived/display value. confirmed (`2121` = supply target), candidate (meaning of `2123`).
+- **Room compensation (empirical fit, Eco 8, curve 30, MIN 25):** outside temperature-reduction periods
+  `2121` ≈ 29.6 − 0.49·T_out + 0.8·RF·(room setpoint − room temperature) (≈ 800 samples from 7 days, 0…9 °C outdoor,
+  RF 1 and 2, rms 0.27 K). During a reduction entry `2121` drops only ~1–2 K — less than replacing the setpoint with
+  the reduction temperature in the same formula would predict. candidate.
+- **Outdoor temperature used by the controller:** the displayed outdoor temperature `W10 46020` (whole °C, signed) is
+  copied into `W15 2010`, `W15 2023`, `R2 43010` and `W6 45024` — all five change in the same ~10 s (one overnight
+  capture), and over three weeks `2010` followed the outdoor temperature with ~0.5–1 h lag, including negative values.
+  About 20 s after such a step `2122`/`2123` move by 1 K → the curve is evaluated from this filtered integer value.
+  The earlier reading of `2010`/`2023` as a cooling-availability state was a coincidence with the temperature.
+  candidate (copies: one capture + 117 changes in history; curve link: one step).
 
 ### 10.2 Defrost as seen on the bus (Eco 8, passive overnight capture at 0…3 °C, 12 defrosts in 9 h)
 
@@ -342,13 +357,14 @@ each one. ENERGY PR.H.W (`1151`) was ON, i.e. defrost energy taken from the DHW 
 | `W2 43020` | b0 set for the whole defrost (DHW valve); tank bottom sensor drops 1–5 K within ~10 min after | confirmed |
 | `2149` | `34` = b1 + b5 (defrost-hot-water) | candidate |
 | `2132`, `2148` | `1` for the whole defrost (+1…+20 s after `R30 reg21` b2) | candidate |
-| `2111` | `1` for the last 21–43 s | unknown |
-| `2020` | `1` for 85–128 s right after the end | unknown |
+| `2111` | `1` for the last 21–43 s (12/12 one night, 6/10 the next) | unknown |
+| `2020` | `1` for 85–128 s right after the end on one night; the next night values 0…3 and `1` for hour-long stretches without defrost → not a defrost-phase flag | unknown |
 | `2108` b7 / `2117` | `0` (also `2108` b7 = 0 during DHW; `128` in space heating) | candidate |
 | `R30 reg7/9/15/17/18/19` | stay `0` — not defrost flags | confirmed |
 
 - **Immersion heaters** ran only at the end of defrosts and only when the tank bottom sensor (`R2 43004`) was ≤ 35 °C
   (4/4; none of 8 defrosts at ≥ 37 °C): heater 1 (`43020` b7) for ~13 s, then heater 2 (`43021` b4, `2014` b4) for 50–160 s. candidate.
+  A second night (10 defrosts, 281–304 s) repeated the signature 10/10, heaters once (heater 1 13 s → heater 2 64 s).
 
 ---
 

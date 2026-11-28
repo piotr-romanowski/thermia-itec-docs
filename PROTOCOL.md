@@ -300,6 +300,25 @@ remember mode → write Off → wait for the top-up status bit (`2149` b2) to cl
   (e.g. `0x40` DHW context, `0x20` heating context, `0x200` outdoor-unit active; `@20` b1 reverse cycle,
   `@21` b2 defrost). `W2 43020` b0 = DHW circuit active (set during DHW **and throughout every defrost**, i.e. the
   DHW valve), b6 = heating context.
+- **Controller outputs `W2 43020` (`A80C`) and `43021` (`A80D`)** — pushed by the controller to `0x02` (FC23 write
+  block `A80C..A812`). Bits from the panel MANUAL TEST (one output at a time, checked with a power meter), confirmed:
+
+  | Register | Bit | Value | Output (panel MANUAL TEST) | Note |
+  |---|---|---|---|---|
+  | `43020` / `A80C` | b0 | `0x01` | REV.V. HOT WATER (DHW valve) | also set for the whole defrost |
+  | | b1 | `0x02` | BY-PASS COOLING | |
+  | | b2 | `0x04` | POT.FREE (potential-free output) | |
+  | | b3 | `0x08` | EXT.AUX.HEATER (external aux heater relay) | `0` without an external heater |
+  | | b5 | `0x20` | came on with EXT.AUX.HEATER | candidate: external source active |
+  | | b6 | `0x40` | controller active / heating context | `0` with OPERATION = Off |
+  | | b7 | `0x80` | **IMM. HEAT 1** (immersion heater stage 1) | ~+2.7 kW |
+  | `43021` / `A80D` | b4 | `0x10` | **IMM. HEAT 2** (immersion heater stage 2) | ~+5.2 kW |
+
+  `43020` b4 is unknown; `48`/`112` (b4+b5) appear for ~1 min once per controller day (pump exercise, §13.1).
+  Typical values: `64` heating, `65` DHW, `193` = heater 1 + active + DHW valve. Heater use on the Eco 8 in winter:
+  mostly at the end of defrosts when the tank bottom is ≤ ~34 °C (stage 1 ~13 s, then stage 2 1–5 min) and at the
+  start of fast-ramping DHW charges. The supply temperature is not a reliable heater indicator (during a defrost it
+  falls while the heaters run); use these bits or the phase power.
 - **SG-Ready:** `R2 43005` = ±1000 (SG2 off/on), `R2 43011` = SG1 (value conflict open).
 - **Calendar function in effect `1467` / `1565` / `1663` / `1761`** (`05BB` / `061D` / `067F` / `06E1`) — one word
   per calendar function, set by the controller: `1` while F1 DHW block / F2 EVU / F3 silent mode / F4 temperature
@@ -365,6 +384,14 @@ each one. ENERGY PR.H.W (`1151`) was ON, i.e. defrost energy taken from the DHW 
 - **Immersion heaters** ran only at the end of defrosts and only when the tank bottom sensor (`R2 43004`) was ≤ 35 °C
   (4/4; none of 8 defrosts at ≥ 37 °C): heater 1 (`43020` b7) for ~13 s, then heater 2 (`43021` b4, `2014` b4) for 50–160 s. candidate.
   A second night (10 defrosts, 281–304 s) repeated the signature 10/10, heaters once (heater 1 13 s → heater 2 64 s).
+- **ENERGY PR.H.W OFF (`1151` = 0, defrost energy from the heating circuit), one night, 22 defrosts at about −1 °C:**
+  in space heating (19/19) the defrost starts with the DHW valve closed (`43020` = `64`) and `2149` = `17` (b0 + b4,
+  defrost-building). The supply falls 31 → 20–21 °C and the condenser outlet 31 → 12 °C (minimum 5 °C). After 109–133 s
+  the controller switches to the tank by itself (`43020` b0 on, `2149` → `34`) and starts both heaters (heater 1 ~13 s,
+  heater 2 19–170 s). The return from the floor heating stayed at ~24 °C, so the switch happens when the water leaving
+  the condenser is ~15 °C / supply ~21 °C. Whether it is a time or a temperature limit isn't clear from these data.
+  Result on this installation: more energy and heater use than with ON → ON kept. confirmed (one night).
+  The same b4 meaning (`0x11`, defrost using building heat) is reported independently on an iTec XT10.
 
 ---
 
